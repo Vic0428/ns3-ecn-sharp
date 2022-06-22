@@ -11,6 +11,7 @@
 #include <map>
 #include <utility>
 #include <set>
+#include <ctime>
 
 // The CDF in TrafficGenerator
 extern "C"
@@ -157,6 +158,7 @@ int main (int argc, char *argv[])
   LogComponentEnable ("LargeScale", LOG_LEVEL_INFO);
 #endif
 
+  time_t t1 = time(NULL);
   // Command line parameters parsing
   std::string id = "undefined";
   unsigned randomSeed = 0;
@@ -472,4 +474,7 @@ int main (int argc, char *argv[])
   Simulator::Destroy ();
   free_cdf (cdfTable);
   NS_LOG_INFO ("Stop simulation");
+  // Monitor the simulation costing time
+  time_t delta = time(NULL) - t1;
+  NS_LOG_INFO ("The whole simulation costs " << delta << " seconds!");
 }
