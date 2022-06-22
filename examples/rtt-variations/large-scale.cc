@@ -155,7 +155,9 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
 }
 
 void printPktsInQueue(std::size_t leaf_id, std::size_t spine_id, unsigned int val1, unsigned int val2) {
-  NS_LOG_INFO("Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
+  if (val2 > 10) {
+    NS_LOG_INFO("Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
+  }
 }
 
 int main (int argc, char *argv[])
