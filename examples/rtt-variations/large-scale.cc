@@ -19,6 +19,7 @@ extern "C"
 #include "cdf.h"
 }
 
+#define ENABLE_FLOW_MONITOR   0
 #define LINK_CAPACITY_BASE    1000000000          // 1Gbps
 #define BUFFER_SIZE 250                           // 250 packets
 
@@ -451,25 +452,31 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
-  NS_LOG_INFO ("Enabling flow monitor");
+  #if ENABLE_FLOW_MONITOR == 1
+    NS_LOG_INFO ("Enabling flow monitor");
 
-  Ptr<FlowMonitor> flowMonitor;
-  FlowMonitorHelper flowHelper;
-  flowMonitor = flowHelper.InstallAll();
+    Ptr<FlowMonitor> flowMonitor;
+    FlowMonitorHelper flowHelper;
+    flowMonitor = flowHelper.InstallAll();
 
 
-  flowMonitor->CheckForLostPackets ();
+    flowMonitor->CheckForLostPackets ();
 
-  std::stringstream flowMonitorFilename;
+    std::stringstream flowMonitorFilename;
 
-  flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << aqmStr << "_"  << transportProt << "_" << load << ".xml";
+    flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << aqmStr << "_"  << transportProt << "_" << load << ".xml";
+  #else
+    NS_LOG_INFO ("Disabling flow monitor");
+  #endif
 
 
   NS_LOG_INFO ("Start simulation");
   Simulator::Stop (Seconds (END_TIME));
   Simulator::Run ();
 
-  flowMonitor->SerializeToXmlFile(flowMonitorFilename.str (), true, true);
+  #if ENABLE_FLOW_MONITOR == 1
+    flowMonitor->SerializeToXmlFile(flowMonitorFilename.str (), true, true);
+  #endif
 
   Simulator::Destroy ();
   free_cdf (cdfTable);
