@@ -19,6 +19,7 @@ extern "C"
 #include "cdf.h"
 }
 
+#define ENABLE_QUEUE_MONITOR  1
 #define ENABLE_FLOW_MONITOR   0
 #define LINK_CAPACITY_BASE    1000000000          // 1Gbps
 #define BUFFER_SIZE 250                           // 250 packets
@@ -151,6 +152,10 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
           startTime += poission_gen_interval (requestRate);
         }
     }
+}
+
+void printPktsInQueue(std::size_t leaf_id, std::size_t spine_id, unsigned int val1, unsigned int val2) {
+  NS_LOG_INFO("Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
 }
 
 int main (int argc, char *argv[])
@@ -402,6 +407,11 @@ int main (int argc, char *argv[])
               spineQueueDisc->SetNetDevice (netDevice1);
               tcl1->SetRootQueueDiscOnDevice (netDevice1, spineQueueDisc);
 
+              #if ENABLE_QUEUE_MONITOR == 1
+                // Register callback function
+                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j));
+
+              #endif
 
               Ipv4InterfaceContainer ipv4InterfaceContainer = ipv4.Assign (netDeviceContainer);
               NS_LOG_INFO ("Leaf - " << i << " is connected to Spine - " << j << " with address "
