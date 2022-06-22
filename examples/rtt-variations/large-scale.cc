@@ -154,9 +154,13 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
     }
 }
 
-void printPktsInQueue(std::size_t leaf_id, std::size_t spine_id, unsigned int val1, unsigned int val2) {
+void printPktsInQueue(std::size_t leaf_id, std::size_t spine_id, bool is_leaf_queue, unsigned int val1, unsigned int val2) {
   if (val2 > 10) {
-    NS_LOG_INFO("Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
+    if (is_leaf_queue) {
+      NS_LOG_INFO("[Leaf Queue]  Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
+    } else {
+      NS_LOG_INFO("[Spine Queue] Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
+    }
   }
 }
 
@@ -411,7 +415,8 @@ int main (int argc, char *argv[])
 
               #if ENABLE_QUEUE_MONITOR == 1
                 // Register callback function
-                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j));
+                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j, true));
+                spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j, false));
 
               #endif
 
