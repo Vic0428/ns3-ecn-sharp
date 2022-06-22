@@ -12,6 +12,8 @@
 #include <utility>
 #include <set>
 #include <ctime>
+#include <sstream>
+#include <string>
 
 // The CDF in TrafficGenerator
 extern "C"
@@ -154,13 +156,9 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
     }
 }
 
-void printPktsInQueue(std::size_t leaf_id, std::size_t spine_id, bool is_leaf_queue, unsigned int val1, unsigned int val2) {
-  if (val2 > 10) {
-    if (is_leaf_queue) {
-      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << "us [Leaf Queue]  Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
-    } else {
-      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << "[Spine Queue] Leaf id: " << leaf_id << " Spine id: " << spine_id << " " << val2);
-    }
+void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
+  if (val2 > 100) {
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qlen" << val2);
   }
 }
 
@@ -367,6 +365,13 @@ int main (int argc, char *argv[])
 
           Ipv4InterfaceContainer interfaceContainer = ipv4.Assign (netDeviceContainer);
 
+          #if ENABLE_QUEUE_MONITOR == 1
+            // Register callback function
+            std::stringstream sstm_leaf;
+            sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << ")";
+            switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
+          #endif
+
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
                        << interfaceContainer.GetAddress(0) << " <-> " << interfaceContainer.GetAddress (1)
                        << " with port " << netDeviceContainer.Get (0)->GetIfIndex () << " <-> " << netDeviceContainer.Get (1)->GetIfIndex ());
@@ -415,8 +420,12 @@ int main (int argc, char *argv[])
 
               #if ENABLE_QUEUE_MONITOR == 1
                 // Register callback function
-                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j, true));
-                spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, i, j, false));
+                std::stringstream sstm_leaf;
+                std::stringstream sstm_spine;
+                sstm_leaf <<  "leafQueue (leafId " << i << ", spineId " << j << ")";
+                sstm_spine << "spineQueue (leafId " << i << ", spineId " << j << ")";
+                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
+                spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_spine.str()));
 
               #endif
 
