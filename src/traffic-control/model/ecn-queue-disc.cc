@@ -7,7 +7,6 @@
 #include "ns3/ipv4-queue-disc-item.h"
 #include "ns3/drop-tail-queue.h"
 
-#define DEFAULT_TCN_LIMIT 100
 
 namespace ns3 {
 
@@ -28,25 +27,25 @@ ECNQueueDisc::GetTypeId (void)
                         MakeEnumChecker (Queue::QUEUE_MODE_BYTES, "QUEUE_MODE_BYTES",
                                          Queue::QUEUE_MODE_PACKETS, "QUEUE_MODE_PACKETS"))
         .AddAttribute ("MaxPackets", "The maximum number of packets accepted by this ECNQueueDisc.",
-                        UintegerValue (DEFAULT_TCN_LIMIT),
+                        UintegerValue (100),
                         MakeUintegerAccessor (&ECNQueueDisc::m_maxPackets),
                         MakeUintegerChecker<uint32_t> ())
         .AddAttribute ("MaxBytes", "The maximum number of bytes accepted by this ECNQueueDisc.",
-                        UintegerValue (1500 * DEFAULT_TCN_LIMIT),
+                        UintegerValue (1500 * 100),
                         MakeUintegerAccessor (&ECNQueueDisc::m_maxBytes),
                         MakeUintegerChecker<uint32_t> ())
-        .AddAttribute ("Threshold",
-                       "Instantaneous sojourn time threshold",
-                        StringValue ("10us"),
-                        MakeTimeAccessor (&ECNQueueDisc::m_threshold),
-                        MakeTimeChecker ())
+        .AddAttribute ("EcnBytes",
+                       "The ECN bytes marking threshold",
+                        UintegerValue (100),
+                        MakeUintegerAccessor (&ECNQueueDisc::m_ecnBytes),
+                        MakeUintegerChecker<uint32_t> ())
     ;
     return tid;
 }
 
 ECNQueueDisc::ECNQueueDisc ()
     : QueueDisc (),
-      m_threshold (0)
+      m_ecnBytes (0)
 {
     NS_LOG_FUNCTION (this);
 }
@@ -73,9 +72,12 @@ ECNQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
         Drop (item);
         return false;
     }
-
-    TCNTimestampTag tag;
-    p->AddPacketTag (tag);
+    
+    // Larger than ECN marking threshold
+    if (GetInternalQueue (0)->GetNBytes () + item->GetPacketSize () > m_ecnBytes)
+    {
+        MarkingECN(item);
+    }
 
     GetInternalQueue (0)->Enqueue (item);
 
@@ -96,23 +98,6 @@ ECNQueueDisc::DoDequeue (void)
     }
 
     Ptr<QueueDiscItem> item = StaticCast<QueueDiscItem> (GetInternalQueue (0)->Dequeue ());
-    Ptr<Packet> p = item->GetPacket ();
-
-    TCNTimestampTag tag;
-    bool found = p->RemovePacketTag (tag);
-    if (!found)
-    {
-        NS_LOG_ERROR ("Cannot find the TCN Timestamp Tag");
-        return NULL;
-    }
-
-    Time sojournTime = now - tag.GetTxTime ();
-
-    if (sojournTime > m_threshold)
-    {
-        ECNQueueDisc::MarkingECN (item);
-    }
-
     return item;
 
 }

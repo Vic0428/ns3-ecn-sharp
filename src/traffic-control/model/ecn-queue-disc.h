@@ -27,9 +27,8 @@ private:
 
     uint32_t m_maxPackets;                  //!< Max # of packets accepted by the queue
     uint32_t m_maxBytes;                    //!< Max # of bytes accepted by the queue
+    uint32_t m_ecnBytes;                    //!< # of bytes of ECN threshold
     Queue::QueueMode     m_mode;            //!< The operating mode (Bytes or packets)
-
-    Time m_threshold;
 };
 
 }
