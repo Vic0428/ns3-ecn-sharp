@@ -22,7 +22,7 @@ extern "C"
 }
 
 #define ENABLE_QUEUE_MONITOR  1
-#define ENABLE_FLOW_MONITOR   0
+#define ENABLE_FLOW_MONITOR   1
 #define LINK_CAPACITY_BASE    1000000000          // 1Gbps
 #define BUFFER_SIZE 250                           // 250 packets
 
@@ -153,7 +153,7 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
 }
 
 void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
-  if (val2 == 100) {
+  if (val2 >= 100) {
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qlen" << val2);
   }
 }
@@ -179,7 +179,7 @@ int main (int argc, char *argv[])
   std::string cdfFileName = "examples/rtt-variations/DCTCP_CDF.txt";
   double load = 0.0;
   std::string transportProt = "DcTcp";
-  Time window = MicroSeconds(25);
+  Time window = MicroSeconds(50);
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
@@ -450,7 +450,7 @@ int main (int argc, char *argv[])
 
     std::stringstream flowMonitorFilename;
 
-    flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << aqmStr << "_"  << transportProt << "_" << load << ".xml";
+    flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << transportProt << "_" << load << ".xml";
   #else
     NS_LOG_INFO ("Disabling flow monitor");
   #endif
