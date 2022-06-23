@@ -76,6 +76,7 @@ ECNQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
     // Larger than ECN marking threshold
     if (GetInternalQueue (0)->GetNBytes () + item->GetPacketSize () > m_ecnBytes)
     {
+        NS_LOG_INFO ("Mark ECN for this packet!");
         MarkingECN(item);
     }
 
