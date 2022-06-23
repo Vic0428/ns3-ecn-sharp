@@ -333,7 +333,7 @@ int main (int argc, char *argv[])
           #if ENABLE_QUEUE_MONITOR == 1
             // Register callback function
             std::stringstream sstm_leaf;
-            sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << ")";
+            sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
             // TODO: changes from queue callback to every 5us
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             Simulator::Schedule(window, &pollPktsInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
