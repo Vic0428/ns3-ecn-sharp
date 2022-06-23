@@ -1,4 +1,4 @@
-#include "tcn-queue-disc.h"
+#include "ecn-queue-disc.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "ns3/enum.h"
@@ -11,133 +11,53 @@
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("TCNQueueDisc");
+NS_LOG_COMPONENT_DEFINE ("ECNQueueDisc");
 
-class TCNTimestampTag : public Tag
-{
-public:
-    TCNTimestampTag ();
-
-    static TypeId GetTypeId (void);
-    virtual TypeId GetInstanceTypeId (void) const;
-
-    virtual uint32_t GetSerializedSize (void) const;
-    virtual void Serialize (TagBuffer i) const;
-    virtual void Deserialize (TagBuffer i);
-    virtual void Print (std::ostream &os) const;
-
-  /**
-   * Gets the Tag creation time
-   * @return the time object stored in the tag
-   */
-  Time GetTxTime (void) const;
-
-private:
-  uint64_t m_creationTime; //!< Tag creation time
-
-};
-
-TCNTimestampTag::TCNTimestampTag ()
-  : m_creationTime (Simulator::Now ().GetTimeStep ())
-{
-}
+NS_OBJECT_ENSURE_REGISTERED (ECNQueueDisc);
 
 TypeId
-TCNTimestampTag::GetTypeId (void)
+ECNQueueDisc::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::TCNTimestampTag")
-    .SetParent<Tag> ()
-    .AddConstructor<TCNTimestampTag> ()
-    .AddAttribute ("CreationTime",
-                   "The time at which the timestamp was created",
-                   StringValue ("0.0s"),
-                   MakeTimeAccessor (&TCNTimestampTag::GetTxTime),
-                   MakeTimeChecker ())
-  ;
-  return tid;
-}
-
-TypeId
-TCNTimestampTag::GetInstanceTypeId (void) const
-{
-  return GetTypeId ();
-}
-
-uint32_t
-TCNTimestampTag::GetSerializedSize (void) const
-{
-  return 8;
-}
-
-void
-TCNTimestampTag::Serialize (TagBuffer i) const
-{
-  i.WriteU64 (m_creationTime);
-}
-
-void
-TCNTimestampTag::Deserialize (TagBuffer i)
-{
-  m_creationTime = i.ReadU64 ();
-}
-
-void
-TCNTimestampTag::Print (std::ostream &os) const
-{
-  os << "CreationTime=" << m_creationTime;
-}
-
-Time
-TCNTimestampTag::GetTxTime (void) const
-{
-  return TimeStep (m_creationTime);
-}
-
-NS_OBJECT_ENSURE_REGISTERED (TCNQueueDisc);
-
-TypeId
-TCNQueueDisc::GetTypeId (void)
-{
-    static TypeId tid = TypeId ("ns3::TCNQueueDisc")
+    static TypeId tid = TypeId ("ns3::ECNQueueDisc")
         .SetParent<QueueDisc> ()
         .SetGroupName ("TrafficControl")
-        .AddConstructor<TCNQueueDisc> ()
+        .AddConstructor<ECNQueueDisc> ()
         .AddAttribute ("Mode", "Whether to use Bytes (see MaxBytes) or Packets (see MaxPackets) as the maximum queue size metric.",
                         EnumValue (Queue::QUEUE_MODE_BYTES),
-                        MakeEnumAccessor (&TCNQueueDisc::m_mode),
+                        MakeEnumAccessor (&ECNQueueDisc::m_mode),
                         MakeEnumChecker (Queue::QUEUE_MODE_BYTES, "QUEUE_MODE_BYTES",
                                          Queue::QUEUE_MODE_PACKETS, "QUEUE_MODE_PACKETS"))
-        .AddAttribute ("MaxPackets", "The maximum number of packets accepted by this TCNQueueDisc.",
+        .AddAttribute ("MaxPackets", "The maximum number of packets accepted by this ECNQueueDisc.",
                         UintegerValue (DEFAULT_TCN_LIMIT),
-                        MakeUintegerAccessor (&TCNQueueDisc::m_maxPackets),
+                        MakeUintegerAccessor (&ECNQueueDisc::m_maxPackets),
                         MakeUintegerChecker<uint32_t> ())
-        .AddAttribute ("MaxBytes", "The maximum number of bytes accepted by this TCNQueueDisc.",
+        .AddAttribute ("MaxBytes", "The maximum number of bytes accepted by this ECNQueueDisc.",
                         UintegerValue (1500 * DEFAULT_TCN_LIMIT),
-                        MakeUintegerAccessor (&TCNQueueDisc::m_maxBytes),
+                        MakeUintegerAccessor (&ECNQueueDisc::m_maxBytes),
                         MakeUintegerChecker<uint32_t> ())
         .AddAttribute ("Threshold",
                        "Instantaneous sojourn time threshold",
                         StringValue ("10us"),
-                        MakeTimeAccessor (&TCNQueueDisc::m_threshold),
+                        MakeTimeAccessor (&ECNQueueDisc::m_threshold),
                         MakeTimeChecker ())
     ;
     return tid;
 }
 
-TCNQueueDisc::TCNQueueDisc ()
+ECNQueueDisc::ECNQueueDisc ()
     : QueueDisc (),
       m_threshold (0)
 {
     NS_LOG_FUNCTION (this);
 }
 
-TCNQueueDisc::~TCNQueueDisc ()
+ECNQueueDisc::~ECNQueueDisc ()
 {
     NS_LOG_FUNCTION (this);
 }
 
 bool
-TCNQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
+ECNQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 {
     NS_LOG_FUNCTION (this << item);
 
@@ -164,7 +84,7 @@ TCNQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 }
 
 Ptr<QueueDiscItem>
-TCNQueueDisc::DoDequeue (void)
+ECNQueueDisc::DoDequeue (void)
 {
     NS_LOG_FUNCTION (this);
 
@@ -190,7 +110,7 @@ TCNQueueDisc::DoDequeue (void)
 
     if (sojournTime > m_threshold)
     {
-        TCNQueueDisc::MarkingECN (item);
+        ECNQueueDisc::MarkingECN (item);
     }
 
     return item;
@@ -198,7 +118,7 @@ TCNQueueDisc::DoDequeue (void)
 }
 
 Ptr<const QueueDiscItem>
-TCNQueueDisc::DoPeek (void) const
+ECNQueueDisc::DoPeek (void) const
 {
     NS_LOG_FUNCTION (this);
     if (GetInternalQueue (0)->IsEmpty ())
@@ -213,7 +133,7 @@ TCNQueueDisc::DoPeek (void) const
 }
 
 bool
-TCNQueueDisc::CheckConfig (void)
+ECNQueueDisc::CheckConfig (void)
 {
     if (GetNInternalQueues () == 0)
     {
@@ -231,7 +151,7 @@ TCNQueueDisc::CheckConfig (void)
 
     if (GetNInternalQueues () != 1)
     {
-        NS_LOG_ERROR ("TCNQueueDisc needs 1 internal queue");
+        NS_LOG_ERROR ("ECNQueueDisc needs 1 internal queue");
         return false;
     }
 
@@ -240,13 +160,13 @@ TCNQueueDisc::CheckConfig (void)
 }
 
 void
-TCNQueueDisc::InitializeParams (void)
+ECNQueueDisc::InitializeParams (void)
 {
     NS_LOG_FUNCTION (this);
 }
 
 bool
-TCNQueueDisc::MarkingECN (Ptr<QueueDiscItem> item)
+ECNQueueDisc::MarkingECN (Ptr<QueueDiscItem> item)
 {
     Ptr<Ipv4QueueDiscItem> ipv4Item = DynamicCast<Ipv4QueueDiscItem> (item);
     if (ipv4Item == 0)   {

@@ -1,19 +1,19 @@
-#ifndef TCN_QUEUE_DISC_H
-#define TCN_QUEUE_DISC_H
+#ifndef ECN_QUEUE_DISC_H
+#define ECN_QUEUE_DISC_H
 
 #include "ns3/queue-disc.h"
 #include "ns3/nstime.h"
 
 namespace ns3 {
 
-class TCNQueueDisc : public QueueDisc
+class ECNQueueDisc : public QueueDisc
 {
 public:
     static TypeId GetTypeId (void);
 
-    TCNQueueDisc ();
+    ECNQueueDisc ();
 
-    virtual ~TCNQueueDisc ();
+    virtual ~ECNQueueDisc ();
 
     bool MarkingECN (Ptr<QueueDiscItem> item);
 
