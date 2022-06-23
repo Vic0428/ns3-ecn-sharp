@@ -1,10 +1,17 @@
+import sys
 import xml.etree.ElementTree as ET
 
 DST_IP_ADDR = "10.1.4.32"
 START_TIME = 172500
 END_TIME = 172750
+WINDOW = 100
 
 if __name__ == "__main__":
+    if len(sys.argv) == 4:
+        DST_IP_ADDR = sys.argv[1]
+        START_TIME = int(sys.argv[2])
+        END_TIME = int(sys.argv[3])
+
     tree = ET.parse("Large_Scale_undefined_9X4_DcTcp_0.25.xml")
     root = tree.getroot()
     for elem in list(root):
@@ -27,7 +34,7 @@ if __name__ == "__main__":
         if this_flow_id in flow_id_list:
             t1 = float(elem.attrib["timeFirstTxPacket"][1:-2])
             t2 = float(elem.attrib["timeLastTxPacket"][1:-2])
-            if t2 < START_TIME * 1000 or t1 > END_TIME * 1000:
+            if t2 < (START_TIME - WINDOW) * 1000 or t1 > (END_TIME + WINDOW) * 1000:
                 continue
             else:
                 flow_id_list_in_time.append(this_flow_id)
