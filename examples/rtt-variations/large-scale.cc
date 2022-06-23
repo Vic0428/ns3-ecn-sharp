@@ -158,12 +158,12 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
   }
 }
 
-void pollPktsInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
-  uint32_t qlen = queue->GetNPackets();
-  if (qlen >= 100) {
-      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qlen " << qlen);
+void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
+  uint32_t qBytes = queue->GetNBytes();
+  if (qBytes >= 140 * 1000) {
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qBytes " << qBytes);
   }
-  Simulator::Schedule(window, &pollPktsInQueue, buf, window, queue);
+  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue);
 }
 
 int main (int argc, char *argv[])
@@ -179,7 +179,7 @@ int main (int argc, char *argv[])
   std::string cdfFileName = "examples/rtt-variations/DCTCP_CDF.txt";
   double load = 0.0;
   std::string transportProt = "DcTcp";
-  Time window = MicroSeconds(50);
+  Time window = MicroSeconds(10);
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
@@ -336,7 +336,7 @@ int main (int argc, char *argv[])
             sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
             // TODO: changes from queue callback to every 5us
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-            Simulator::Schedule(window, &pollPktsInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
+            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
           #endif
 
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
