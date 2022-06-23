@@ -179,7 +179,7 @@ int main (int argc, char *argv[])
   std::string cdfFileName = "examples/rtt-variations/DCTCP_CDF.txt";
   double load = 0.0;
   std::string transportProt = "DcTcp";
-  Time window = MicroSeconds(10);
+  Time window = MicroSeconds(25);
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
