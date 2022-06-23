@@ -36,10 +36,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("LargeScale");
 
-enum AQM {
-  TCN,
-  ECNSharp
-};
 
 // Acknowledged to https://github.com/HKUST-SING/TrafficGenerator/blob/master/src/common/common.c
 double poission_gen_interval(double avg_rate)
@@ -157,7 +153,7 @@ void install_applications (int fromLeafId, NodeContainer servers, double request
 }
 
 void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
-  if (val2 > 100) {
+  if (val2 == 100) {
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qlen" << val2);
   }
 }
@@ -176,7 +172,6 @@ int main (int argc, char *argv[])
   double load = 0.0;
   std::string transportProt = "DcTcp";
 
-  std::string aqmStr = "ECNSharp";
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
@@ -194,14 +189,8 @@ int main (int argc, char *argv[])
   uint64_t spineLeafCapacity = 10;
   uint64_t leafServerCapacity = 10;
 
-  uint32_t TCNThreshold = 80;
-
-  uint32_t ECNSharpInterval = 150;
-  uint32_t ECNSharpTarget = 10;
-  uint32_t ECNSharpMarkingThreshold = 80;
 
   CommandLine cmd;
-  cmd.AddValue ("ID", "Running ID", id);
   cmd.AddValue ("StartTime", "Start time of the simulation", START_TIME);
   cmd.AddValue ("EndTime", "End time of the simulation", END_TIME);
   cmd.AddValue ("FlowLaunchEndTime", "End time of the flow launch period", FLOW_LAUNCH_END_TIME);
@@ -219,13 +208,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("spineLeafCapacity", "Spine <-> Leaf capacity in Gbps", spineLeafCapacity);
   cmd.AddValue ("leafServerCapacity", "Leaf <-> Server capacity in Gbps", leafServerCapacity);
 
-  cmd.AddValue ("AQM", "AQM to use: TCN or ECNSharp", aqmStr);
 
-  cmd.AddValue ("TCNThreshold", "The threshold for TCN", TCNThreshold);
-
-  cmd.AddValue ("ECNShaprInterval", "The persistent interval for ECNSharp", ECNSharpInterval);
-  cmd.AddValue ("ECNSharpTarget", "The persistent target for ECNShapr", ECNSharpTarget);
-  cmd.AddValue ("ECNShaprMarkingThreshold", "The instantaneous marking threshold for ECNSharp", ECNSharpMarkingThreshold);
 
 
   cmd.Parse (argc, argv);
@@ -240,36 +223,16 @@ int main (int argc, char *argv[])
       return 0;
     }
 
-  AQM aqm;
-  if (aqmStr.compare ("TCN") == 0)
-    {
-      aqm = TCN;
-    }
-  else if (aqmStr.compare ("ECNSharp") == 0)
-    {
-      aqm = ECNSharp;
-    }
-  else
-    {
-      return 0;
-    }
 
   if (transportProt.compare ("DcTcp") == 0)
     {
       NS_LOG_INFO ("Enabling DcTcp");
       Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpDCTCP::GetTypeId ()));
 
-      // TCN Configuration
-      Config::SetDefault ("ns3::TCNQueueDisc::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-      Config::SetDefault ("ns3::TCNQueueDisc::MaxPackets", UintegerValue (BUFFER_SIZE));
-      Config::SetDefault ("ns3::TCNQueueDisc::Threshold", TimeValue (MicroSeconds (TCNThreshold)));
-
-      // ECN Sharp Configuration
-      Config::SetDefault ("ns3::ECNSharpQueueDisc::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-      Config::SetDefault ("ns3::ECNSharpQueueDisc::MaxPackets", UintegerValue (BUFFER_SIZE));
-      Config::SetDefault ("ns3::ECNSharpQueueDisc::InstantaneousMarkingThreshold", TimeValue (MicroSeconds (ECNSharpMarkingThreshold)));
-      Config::SetDefault ("ns3::ECNSharpQueueDisc::PersistentMarkingTarget", TimeValue (MicroSeconds (ECNSharpTarget)));
-      Config::SetDefault ("ns3::ECNSharpQueueDisc::PersistentMarkingInterval", TimeValue (MicroSeconds (ECNSharpInterval)));
+      // ECN Configuration
+      Config::SetDefault ("ns3::ECNQueueDisc::Mode", StringValue ("QUEUE_MODE_PACKETS"));
+      Config::SetDefault ("ns3::ECNQueueDisc::MaxPackets", UintegerValue (BUFFER_SIZE));
+      Config::SetDefault ("ns3::ECNQueueDisc::EcnBytes", UintegerValue (84 * 1000));
     }
 
   NS_LOG_INFO ("Config parameters");
@@ -342,14 +305,8 @@ int main (int argc, char *argv[])
 
           ObjectFactory switchSideQueueFactory;
 
-          if (aqm == TCN)
-            {
-              switchSideQueueFactory.SetTypeId ("ns3::TCNQueueDisc");
-            }
-          else
-            {
-              switchSideQueueFactory.SetTypeId ("ns3::ECNSharpQueueDisc");
-            }
+          switchSideQueueFactory.SetTypeId ("ns3::ECNQueueDisc");
+
           Ptr<QueueDisc> switchSideQueueDisc = switchSideQueueFactory.Create<QueueDisc> ();
 
           Ptr<NetDevice> netDevice0 = netDeviceContainer.Get (0);
@@ -395,14 +352,7 @@ int main (int argc, char *argv[])
               NetDeviceContainer netDeviceContainer = p2p.Install (nodeContainer);
               ObjectFactory switchSideQueueFactory;
 
-              if (aqm == TCN)
-                {
-                  switchSideQueueFactory.SetTypeId ("ns3::TCNQueueDisc");
-                }
-              else
-                {
-                  switchSideQueueFactory.SetTypeId ("ns3::ECNSharpQueueDisc");
-                }
+              switchSideQueueFactory.SetTypeId ("ns3::ECNQueueDisc");
 
               Ptr<QueueDisc> leafQueueDisc = switchSideQueueFactory.Create<QueueDisc> ();
 
