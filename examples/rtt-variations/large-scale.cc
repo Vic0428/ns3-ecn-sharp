@@ -166,7 +166,8 @@ void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
   Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue);
 }
 
-void p4Program(Ptr<QueueDisc> queue, Ptr<QueueItem const> item) {
+void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, Ptr<QueueItem const> item) {
+  Ptr<Packet> p = item->GetPacket();
   return;
 }
 
@@ -292,6 +293,25 @@ int main (int argc, char *argv[])
 
   ipv4.SetBase ("10.1.0.0", "255.255.255.0");
 
+  #if ENABLE_FLOW_MONITOR == 1
+    NS_LOG_INFO ("Enabling flow monitor");
+
+    Ptr<FlowMonitor> flowMonitor;
+    FlowMonitorHelper flowHelper;
+    flowMonitor = flowHelper.InstallAll();
+
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowHelper.GetClassifier ());
+
+    flowMonitor->CheckForLostPackets ();
+
+    std::stringstream flowMonitorFilename;
+
+    flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << transportProt << "_" << load << ".xml";
+  #else
+    NS_LOG_INFO ("Disabling flow monitor");
+  #endif
+
+
   for (int i = 0; i < LEAF_COUNT; i++)
     {
       ipv4.NewNetwork ();
@@ -340,7 +360,7 @@ int main (int argc, char *argv[])
             sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
             // Enqueue operation (maintain per-flow bytes counter)
 
-            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc));
+            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
           #endif
@@ -444,22 +464,6 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
-  #if ENABLE_FLOW_MONITOR == 1
-    NS_LOG_INFO ("Enabling flow monitor");
-
-    Ptr<FlowMonitor> flowMonitor;
-    FlowMonitorHelper flowHelper;
-    flowMonitor = flowHelper.InstallAll();
-
-
-    flowMonitor->CheckForLostPackets ();
-
-    std::stringstream flowMonitorFilename;
-
-    flowMonitorFilename << "Large_Scale_" <<id << "_" << LEAF_COUNT << "X" << SPINE_COUNT << "_" << transportProt << "_" << load << ".xml";
-  #else
-    NS_LOG_INFO ("Disabling flow monitor");
-  #endif
 
 
   NS_LOG_INFO ("Start simulation");
