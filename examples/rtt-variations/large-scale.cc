@@ -172,7 +172,11 @@ void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, Ptr<Que
   Ptr<Ipv4QueueDiscItem const> ipv4Item = DynamicCast<Ipv4QueueDiscItem const> (item);
   Ipv4Header header = ipv4Item -> GetHeader ();
 
-  NS_LOG_INFO("aaaa " << header.GetDestination());
+  uint32_t flowId, pktId;
+  bool flag = classifier->Classify(header, p, &flowId, &pktId);
+  if (flag) {
+    // Successfully extract the flow ID
+  }
   return;
 }
 
