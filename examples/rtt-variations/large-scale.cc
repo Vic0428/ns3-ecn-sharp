@@ -163,7 +163,7 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
 void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
-  if (qBytes >= 140 * 1000) {
+  if (qBytes >= 90 * 1000) {
       NS_LOG_INFO("-----------------------------------------------------");
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qBytes " << qBytes);
       for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
@@ -217,7 +217,7 @@ int main (int argc, char *argv[])
   std::string cdfFileName = "examples/rtt-variations/DCTCP_CDF.txt";
   double load = 0.0;
   std::string transportProt = "DcTcp";
-  Time window = MicroSeconds(100);
+  Time window = MicroSeconds(50);
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
