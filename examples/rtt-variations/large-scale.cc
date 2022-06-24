@@ -36,6 +36,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("LargeScale");
 
+std::vector<std::map<uint32_t, uint32_t> > all_bytes_counters;
+std::vector<Time> all_time;
 
 // Acknowledged to https://github.com/HKUST-SING/TrafficGenerator/blob/master/src/common/common.c
 double poission_gen_interval(double avg_rate)
@@ -166,7 +168,7 @@ void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
   Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue);
 }
 
-void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, Ptr<QueueItem const> item) {
+void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, int queue_id, Ptr<QueueItem const> item) {
   Ptr<Packet> p = item->GetPacket();
   // Extract ip header
   Ptr<Ipv4QueueDiscItem const> ipv4Item = DynamicCast<Ipv4QueueDiscItem const> (item);
@@ -176,6 +178,32 @@ void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, Ptr<Que
   bool flag = classifier->Classify(header, p, &flowId, &pktId);
   if (flag) {
     // Successfully extract the flow ID
+    std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
+    Time &time = all_time[queue_id];
+
+    // TODO: maintain a mapping between flowId to the #bytes
+    if (bytes_counters.find(flowId) == bytes_counters.end()) {
+      bytes_counters[flowId] = p->GetSize();
+    } else {
+      bytes_counters[flowId] += p->GetSize();
+    }
+    if (Simulator::Now().GetMicroSeconds() - time >= MicroSeconds(100)) {
+
+      uint32_t qBytes = queue->GetNBytes();
+      if (qBytes >= 140 * 1000) {
+        NS_LOG_INFO("-----------------------------------------------------");
+        NS_LOG_INFO("Time " << time << " QueueID " << queue_id);
+        for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
+          NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second);
+        }
+        time += MicroSeconds(100);
+        NS_LOG_INFO("-----------------------------------------------------");
+      }
+
+      bytes_counters.clear();
+    }
+    // TODO: every time window (100us), it will clear this kind of information 
+
   }
   return;
 }
@@ -321,6 +349,7 @@ int main (int argc, char *argv[])
   #endif
 
 
+
   for (int i = 0; i < LEAF_COUNT; i++)
     {
       ipv4.NewNetwork ();
@@ -369,7 +398,10 @@ int main (int argc, char *argv[])
             sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
             // Enqueue operation (maintain per-flow bytes counter)
 
-            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier));
+            all_bytes_counters.push_back(std::map<uint32_t, uint32_t>());
+            all_time.push_back(Time(MicroSeconds(0)));
+
+            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
           #endif
