@@ -334,7 +334,6 @@ int main (int argc, char *argv[])
             // Register callback function
             std::stringstream sstm_leaf;
             sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
-            // TODO: changes from queue callback to every 5us
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
           #endif
