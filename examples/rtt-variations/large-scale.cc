@@ -160,20 +160,26 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
   }
 }
 
-void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
+void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
   if (qBytes >= 140 * 1000) {
       NS_LOG_INFO("-----------------------------------------------------");
-      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qBytes " << qBytes);
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qBytes " << qBytes);
       for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
         Ipv4FlowClassifier::FiveTuple flowTuple = classifier->FindFlow(it->first);
         NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second << " (" << flowTuple.sourceAddress << " -> " << flowTuple.destinationAddress << ")");
+        if (serverIpAddr == flowTuple.sourceAddress) {
+          NS_LOG_INFO ("[[[[[[[[[[[[[[[[[[[[[SRC ADDR MATCH]]]]]]]]]]]]]]]]]]]");
+        } 
+        if (serverIpAddr == flowTuple.destinationAddress) {
+          NS_LOG_INFO ("[[[[[[[[[[[[[[[[[[[[[DST ADDR MATCH]]]]]]]]]]]]]]]]]]]");
+        }
       }
       NS_LOG_INFO("-----------------------------------------------------");
   }
   bytes_counters.clear();
-  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue, queue_id, classifier);
+  Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, queue, queue_id, classifier);
 }
 
 void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, int queue_id, Ptr<QueueItem const> item) {
@@ -384,8 +390,9 @@ int main (int argc, char *argv[])
 
           #if ENABLE_QUEUE_MONITOR == 1
             // Register callback function
-            std::stringstream sstm_leaf;
-            sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
+            Ipv4Address serverIpAddr =  interfaceContainer.GetAddress (1);
+
+            // sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << serverIpAddr << ")";
             // Enqueue operation (maintain per-flow bytes counter)
 
             all_bytes_counters.push_back(std::map<uint32_t, uint32_t>());
@@ -393,7 +400,7 @@ int main (int argc, char *argv[])
 
             switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
+            Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
           #endif
 
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
