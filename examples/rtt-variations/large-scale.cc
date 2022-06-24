@@ -166,6 +166,10 @@ void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
   Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue);
 }
 
+void p4Program(Ptr<QueueDisc> queue, Ptr<QueueItem const> item) {
+  return;
+}
+
 int main (int argc, char *argv[])
 {
 #if 1
@@ -334,6 +338,9 @@ int main (int argc, char *argv[])
             // Register callback function
             std::stringstream sstm_leaf;
             sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << interfaceContainer.GetAddress (1) << ")";
+            // Enqueue operation (maintain per-flow bytes counter)
+
+            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
           #endif
