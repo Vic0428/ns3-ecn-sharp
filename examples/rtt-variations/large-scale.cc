@@ -168,6 +168,11 @@ void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
 
 void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, Ptr<QueueItem const> item) {
   Ptr<Packet> p = item->GetPacket();
+  // Extract ip header
+  Ptr<Ipv4QueueDiscItem const> ipv4Item = DynamicCast<Ipv4QueueDiscItem const> (item);
+  Ipv4Header header = ipv4Item -> GetHeader ();
+
+  NS_LOG_INFO("aaaa " << header.GetDestination());
   return;
 }
 
