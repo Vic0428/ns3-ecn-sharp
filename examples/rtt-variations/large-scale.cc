@@ -160,19 +160,20 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
   }
 }
 
-void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue, int queue_id) {
+void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
   if (qBytes >= 140 * 1000) {
       NS_LOG_INFO("-----------------------------------------------------");
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qBytes " << qBytes);
       for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
-        NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second);
+        Ipv4FlowClassifier::FiveTuple flowTuple = classifier->FindFlow(it->first);
+        NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second << " (" << flowTuple.sourceAddress << " -> " << flowTuple.destinationAddress << ")");
       }
       NS_LOG_INFO("-----------------------------------------------------");
   }
   bytes_counters.clear();
-  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue, queue_id);
+  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue, queue_id, classifier);
 }
 
 void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, int queue_id, Ptr<QueueItem const> item) {
@@ -210,7 +211,7 @@ int main (int argc, char *argv[])
   std::string cdfFileName = "examples/rtt-variations/DCTCP_CDF.txt";
   double load = 0.0;
   std::string transportProt = "DcTcp";
-  Time window = MicroSeconds(10);
+  Time window = MicroSeconds(100);
 
   // The simulation starting and ending time
   double START_TIME = 0.0;
@@ -392,7 +393,7 @@ int main (int argc, char *argv[])
 
             switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc, i * SERVER_COUNT + j);
+            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
           #endif
 
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
