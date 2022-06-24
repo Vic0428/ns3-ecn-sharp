@@ -160,12 +160,19 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
   }
 }
 
-void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue) {
+void pollBytesInQueue(std::string buf, Time window, Ptr<QueueDisc> queue, int queue_id) {
   uint32_t qBytes = queue->GetNBytes();
+  std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
   if (qBytes >= 140 * 1000) {
+      NS_LOG_INFO("-----------------------------------------------------");
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << buf << " qBytes " << qBytes);
+      for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
+        NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second);
+      }
+      NS_LOG_INFO("-----------------------------------------------------");
   }
-  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue);
+  bytes_counters.clear();
+  Simulator::Schedule(window, &pollBytesInQueue, buf, window, queue, queue_id);
 }
 
 void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, int queue_id, Ptr<QueueItem const> item) {
@@ -179,30 +186,12 @@ void p4Program(Ptr<QueueDisc> queue, Ptr<Ipv4FlowClassifier> classifier, int que
   if (flag) {
     // Successfully extract the flow ID
     std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
-    Time &time = all_time[queue_id];
 
-    // TODO: maintain a mapping between flowId to the #bytes
     if (bytes_counters.find(flowId) == bytes_counters.end()) {
       bytes_counters[flowId] = p->GetSize();
     } else {
       bytes_counters[flowId] += p->GetSize();
     }
-    if (Simulator::Now().GetMicroSeconds() - time >= MicroSeconds(100)) {
-
-      uint32_t qBytes = queue->GetNBytes();
-      if (qBytes >= 140 * 1000) {
-        NS_LOG_INFO("-----------------------------------------------------");
-        NS_LOG_INFO("Time " << time << " QueueID " << queue_id);
-        for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
-          NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second);
-        }
-        time += MicroSeconds(100);
-        NS_LOG_INFO("-----------------------------------------------------");
-      }
-
-      bytes_counters.clear();
-    }
-    // TODO: every time window (100us), it will clear this kind of information 
 
   }
   return;
@@ -403,7 +392,7 @@ int main (int argc, char *argv[])
 
             switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc);
+            Simulator::Schedule(window, &pollBytesInQueue, sstm_leaf.str(), window, switchSideQueueDisc, i * SERVER_COUNT + j);
           #endif
 
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
