@@ -22,7 +22,7 @@ extern "C"
 }
 
 #define ENABLE_TOR_SPINE_MONITOR 1
-#define ENABLE_SERVER_TOR_MONITOR 0
+#define ENABLE_SERVER_TOR_MONITOR 1
 #define ENABLE_QUEUE_MONITOR  1
 #define ENABLE_FLOW_MONITOR   1
 #define LINK_CAPACITY_BASE    1000000000          // 1Gbps
@@ -81,6 +81,7 @@ void install_incast (NodeContainer servers, int SERVER_COUNT, int LEAF_COUNT, do
       }
     }
     double startTime = START_TIME + static_cast<double> (rand () % 100) / 1000000;
+    NS_LOG_INFO("The incast will start at time " << startTime << " us");
     for (std::set<uint32_t>::iterator it = snd_idx_set.begin(); it != snd_idx_set.end(); it++) {
       NS_LOG_INFO("Select server " << *it << " as the sender!");
       uint32_t senderIndex = *it;
@@ -107,53 +108,53 @@ void install_incast (NodeContainer servers, int SERVER_COUNT, int LEAF_COUNT, do
     
   }
 }
-void install_incast_applications (NodeContainer servers, long &flowCount, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
-{
-  NS_LOG_INFO ("Install incast applications:");
-  for (int i = 0; i < SERVER_COUNT; i++)
-    {
-      Ptr<Node> destServer = servers.Get (i);
-      Ptr<Ipv4> ipv4 = destServer->GetObject<Ipv4> ();
-      Ipv4InterfaceAddress destInterface = ipv4->GetAddress (1,0);
-      Ipv4Address destAddress = destInterface.GetLocal ();
-
-      uint32_t fanout = rand () % 50 + 100;
-      for (uint32_t j = 0; j < fanout; j++)
-        {
-          double startTime = START_TIME + static_cast<double> (rand () % 100) / 1000000;
-          while (startTime < FLOW_LAUNCH_END_TIME)
-            {
-              flowCount ++;
-              uint32_t fromServerIndex = rand () % SERVER_COUNT;
-              uint16_t port = PORT++;
-
-              BulkSendHelper source ("ns3::TcpSocketFactory", InetSocketAddress (destAddress, port));
-              uint32_t flowSize = rand () % 10000;
-              uint32_t tos = rand() % 5;
-
-              source.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
-              source.SetAttribute ("MaxBytes", UintegerValue(flowSize));
-              source.SetAttribute ("SimpleTOS", UintegerValue (tos));
-
-              // Install apps
-              ApplicationContainer sourceApp = source.Install (servers.Get (fromServerIndex));
-              sourceApp.Start (Seconds (startTime));
-              sourceApp.Stop (Seconds (END_TIME));
-
-              // Install packet sinks
-              PacketSinkHelper sink ("ns3::TcpSocketFactory",
-                                     InetSocketAddress (Ipv4Address::GetAny (), port));
-              ApplicationContainer sinkApp = sink.Install (servers. Get (i));
-              sinkApp.Start (Seconds (START_TIME));
-              sinkApp.Stop (Seconds (END_TIME));
-
-              startTime += static_cast<double> (rand () % 1000) / 1000000;
-            }
-
-        }
-
-    }
-}
+// void install_incast_applications (NodeContainer servers, long &flowCount, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
+// {
+//   NS_LOG_INFO ("Install incast applications:");
+//   for (int i = 0; i < SERVER_COUNT; i++)
+//     {
+//       Ptr<Node> destServer = servers.Get (i);
+//       Ptr<Ipv4> ipv4 = destServer->GetObject<Ipv4> ();
+//       Ipv4InterfaceAddress destInterface = ipv4->GetAddress (1,0);
+//       Ipv4Address destAddress = destInterface.GetLocal ();
+// 
+//       uint32_t fanout = rand () % 50 + 100;
+//       for (uint32_t j = 0; j < fanout; j++)
+//         {
+//           double startTime = START_TIME + static_cast<double> (rand () % 100) / 1000000;
+//           while (startTime < FLOW_LAUNCH_END_TIME)
+//             {
+//               flowCount ++;
+//               uint32_t fromServerIndex = rand () % SERVER_COUNT;
+//               uint16_t port = PORT++;
+// 
+//               BulkSendHelper source ("ns3::TcpSocketFactory", InetSocketAddress (destAddress, port));
+//               uint32_t flowSize = rand () % 10000;
+//               uint32_t tos = rand() % 5;
+// 
+//               source.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+//               source.SetAttribute ("MaxBytes", UintegerValue(flowSize));
+//               source.SetAttribute ("SimpleTOS", UintegerValue (tos));
+// 
+//               // Install apps
+//               ApplicationContainer sourceApp = source.Install (servers.Get (fromServerIndex));
+//               sourceApp.Start (Seconds (startTime));
+//               sourceApp.Stop (Seconds (END_TIME));
+// 
+//               // Install packet sinks
+//               PacketSinkHelper sink ("ns3::TcpSocketFactory",
+//                                      InetSocketAddress (Ipv4Address::GetAny (), port));
+//               ApplicationContainer sinkApp = sink.Install (servers. Get (i));
+//               sinkApp.Start (Seconds (START_TIME));
+//               sinkApp.Stop (Seconds (END_TIME));
+// 
+//               startTime += static_cast<double> (rand () % 1000) / 1000000;
+//             }
+// 
+//         }
+// 
+//     }
+// }
 
 void install_applications (int fromLeafId, NodeContainer servers, double requestRate, struct cdf_table *cdfTable,
                            long &flowCount, long &totalFlowSize, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
