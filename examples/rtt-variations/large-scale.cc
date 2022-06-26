@@ -21,6 +21,7 @@ extern "C"
 #include "cdf.h"
 }
 
+#define ENABLE_TOR_SPINE_MONITOR 1
 #define ENABLE_SERVER_TOR_MONITOR 0
 #define ENABLE_QUEUE_MONITOR  1
 #define ENABLE_FLOW_MONITOR   1
@@ -161,6 +162,15 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
   }
 }
 
+void pollBytesInLeafSpine(Time window, Ptr<QueueDisc> queue, int queue_id) {
+  uint32_t qBytes = queue->GetNBytes();
+  if (qBytes > 0) {
+    #if ENABLE_TOR_SPINE_MONITOR == 1
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qId " << queue_id << ", qBytes " << qBytes);
+    #endif
+  }
+  Simulator::Schedule(window, &pollBytesInLeafSpine, window, queue, queue_id);
+}
 void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
@@ -454,13 +464,14 @@ int main (int argc, char *argv[])
 
               #if ENABLE_QUEUE_MONITOR == 1
                 // Register callback function
-                std::stringstream sstm_leaf;
-                std::stringstream sstm_spine;
-                sstm_leaf <<  "leafQueue (leafId " << i << ", spineId " << j << ")";
-                sstm_spine << "spineQueue (leafId " << i << ", spineId " << j << ")";
-                leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-                spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_spine.str()));
-
+                // std::stringstream sstm_leaf;
+                // std::stringstream sstm_spine;
+                // sstm_leaf <<  "leafQueue (leafId " << i << ", spineId " << j << ")";
+                // sstm_spine << "spineQueue (leafId " << i << ", spineId " << j << ")";
+                // leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
+                // spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_spine.str()));
+                Simulator::Schedule(window, &pollBytesInLeafSpine, window, leafQueueDisc, (i * SPINE_COUNT + j) << 1);
+                Simulator::Schedule(window, &pollBytesInLeafSpine, window, spineQueueDisc, ((i * SPINE_COUNT + j) << 1) + 1);
               #endif
 
               Ipv4InterfaceContainer ipv4InterfaceContainer = ipv4.Assign (netDeviceContainer);
