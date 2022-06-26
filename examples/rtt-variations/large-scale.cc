@@ -575,7 +575,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
   NS_LOG_INFO ("Create applications (incast)");
-  install_incast(servers, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
+  install_incast(servers, SERVER_COUNT * LEAF_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
 
 
   NS_LOG_INFO ("Start simulation");
