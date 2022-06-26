@@ -56,6 +56,57 @@ T rand_range (T min, T max)
   return min + ((double)max - min) * rand () / RAND_MAX;
 }
 
+void install_incast (NodeContainer servers, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
+{
+  // Install 1 incast 
+  uint32_t n_incast = 1;
+  uint32_t fanout = 60;
+  // Flow size: 500 KB
+  uint32_t flowSize = 500 * 1000;
+  for (uint32_t i = 0; i < n_incast; ++i) {
+    // First, select the receiver
+    uint32_t rcv_idx = rand() % SERVER_COUNT;
+    Ptr<Node> destServer = servers.Get (rcv_idx);
+    Ptr<Ipv4> ipv4 = destServer->GetObject<Ipv4> ();
+    Ipv4InterfaceAddress destInterface = ipv4->GetAddress (1,0);
+    Ipv4Address destAddress = destInterface.GetLocal ();
+    NS_LOG_INFO("Select server " << rcv_idx << " as receiver!");
+
+    std::set<uint32_t> snd_idx_set;
+    while (snd_idx_set.size() < fanout)
+    {
+      uint32_t send_idx = rand() % SERVER_COUNT;
+      if (snd_idx_set.find(send_idx) == snd_idx_set.end()) {
+        snd_idx_set.insert(send_idx);
+      }
+    }
+    double startTime = START_TIME + static_cast<double> (rand () % 100) / 1000000;
+    for (std::set<uint32_t>::iterator it = snd_idx_set.begin(); it != snd_idx_set.end(); it++) {
+      NS_LOG_INFO("Select server " << *it << " as the sender!");
+      uint32_t senderIndex = *it;
+      uint16_t port = PORT++;
+      BulkSendHelper source ("ns3::TcpSocketFactory", InetSocketAddress (destAddress, port));
+          
+      source.SetAttribute ("SendSize", UintegerValue (PACKET_SIZE));
+      source.SetAttribute ("MaxBytes", UintegerValue(flowSize));
+      source.SetAttribute ("SimpleTOS", UintegerValue (rand() % 5));
+
+      // Install apps
+      ApplicationContainer sourceApp = source.Install (servers.Get (senderIndex));
+      sourceApp.Start (Seconds (startTime));
+      sourceApp.Stop (Seconds (END_TIME));
+
+      // Install packet sinks
+      PacketSinkHelper sink ("ns3::TcpSocketFactory",
+                             InetSocketAddress (Ipv4Address::GetAny (), port));
+      ApplicationContainer sinkApp = sink.Install (servers. Get (rcv_idx));
+      sinkApp.Start (Seconds (START_TIME));
+      sinkApp.Stop (Seconds (END_TIME));
+    }
+
+    
+  }
+}
 void install_incast_applications (NodeContainer servers, long &flowCount, int SERVER_COUNT, int LEAF_COUNT, double START_TIME, double END_TIME, double FLOW_LAUNCH_END_TIME)
 {
   NS_LOG_INFO ("Install incast applications:");
@@ -509,7 +560,7 @@ int main (int argc, char *argv[])
       srand (randomSeed);
     }
 
-  NS_LOG_INFO ("Create applications");
+  NS_LOG_INFO ("Create applications (cdf)");
 
   long flowCount = 0;
   long totalFlowSize = 0;
@@ -523,6 +574,8 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
+  NS_LOG_INFO ("Create applications (incast)");
+  install_incast(servers, SERVER_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
 
 
   NS_LOG_INFO ("Start simulation");
