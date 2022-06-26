@@ -21,6 +21,7 @@ extern "C"
 #include "cdf.h"
 }
 
+#define ENABLE_SERVER_TOR_MONITOR 0
 #define ENABLE_QUEUE_MONITOR  1
 #define ENABLE_FLOW_MONITOR   1
 #define LINK_CAPACITY_BASE    1000000000          // 1Gbps
@@ -163,9 +164,17 @@ void printPktsInQueue(std::string buf, unsigned int val1, unsigned int val2) {
 void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
-  if (qBytes >= 90 * 1000) {
+  if (qBytes >= 200 * 1000) {
+    #if ENABLE_SERVER_TOR_MONITOR == 1
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qId " << queue_id << ", qBytes " << qBytes);
+    #endif
+    
+  }
+
+  if (bytes_counters.size() > 0) {
+    #if ENABLE_SERVER_TOR_MONITOR == 1
       NS_LOG_INFO("-----------------------------------------------------");
-      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qBytes " << qBytes);
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us," << "qId " << queue_id);
       for (std::map<uint32_t, uint32_t>::iterator it = bytes_counters.begin(); it != bytes_counters.end(); ++it) {
         Ipv4FlowClassifier::FiveTuple flowTuple = classifier->FindFlow(it->first);
         NS_LOG_INFO ("Flowid: " << it->first << ", bytes: " << it->second << " (" << flowTuple.sourceAddress << " -> " << flowTuple.destinationAddress << ")");
@@ -177,6 +186,7 @@ void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queu
         }
       }
       NS_LOG_INFO("-----------------------------------------------------");
+      #endif
   }
   bytes_counters.clear();
   Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, queue, queue_id, classifier);
