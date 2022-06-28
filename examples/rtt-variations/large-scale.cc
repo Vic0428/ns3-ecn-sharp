@@ -39,7 +39,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE ("LargeScale");
 
 std::vector<std::map<uint32_t, uint32_t> > all_bytes_counters;
-std::vector<Time> all_time;
 
 // Acknowledged to https://github.com/HKUST-SING/TrafficGenerator/blob/master/src/common/common.c
 double poission_gen_interval(double avg_rate)
@@ -70,7 +69,7 @@ void install_incast (NodeContainer servers, int SERVER_COUNT, int LEAF_COUNT, do
     Ptr<Ipv4> ipv4 = destServer->GetObject<Ipv4> ();
     Ipv4InterfaceAddress destInterface = ipv4->GetAddress (1,0);
     Ipv4Address destAddress = destInterface.GetLocal ();
-    NS_LOG_INFO("Select server " << rcv_idx << " as receiver!");
+    NS_LOG_INFO("Select server " << rcv_idx << " " << destAddress << " as receiver!");
 
     std::set<uint32_t> snd_idx_set;
     while (snd_idx_set.size() < fanout)
@@ -81,7 +80,7 @@ void install_incast (NodeContainer servers, int SERVER_COUNT, int LEAF_COUNT, do
       }
     }
     double startTime = START_TIME + static_cast<double> (rand () % 100) / 1000000;
-    NS_LOG_INFO("The incast will start at time " << startTime << " us");
+    NS_LOG_INFO("The incast will start at time " << startTime * 1e6 << " us");
     for (std::set<uint32_t>::iterator it = snd_idx_set.begin(); it != snd_idx_set.end(); it++) {
       NS_LOG_INFO("Select server " << *it << " as the sender!");
       uint32_t senderIndex = *it;
@@ -223,10 +222,22 @@ void pollBytesInLeafSpine(Time window, Ptr<QueueDisc> queue, int queue_id) {
   }
   Simulator::Schedule(window, &pollBytesInLeafSpine, window, queue, queue_id);
 }
+
+void pollBytesInServer(Time window, Ptr<QueueDisc> queue, int queue_id) {
+  uint32_t qBytes = queue->GetNBytes();
+  if (qBytes > 0) {
+    #if ENABLE_TOR_SPINE_MONITOR == 1
+      NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " server qId " << queue_id << ", qBytes " << qBytes);
+    #endif
+  }
+  Simulator::Schedule(window, &pollBytesInServer, window, queue, queue_id);
+}
+
+
 void pollBytesInQueue(Ipv4Address serverIpAddr, Time window, Ptr<QueueDisc> queue, int queue_id, Ptr<Ipv4FlowClassifier> classifier) {
   uint32_t qBytes = queue->GetNBytes();
   std::map<uint32_t, uint32_t> &bytes_counters = all_bytes_counters[queue_id];
-  if (qBytes >= 200 * 1000) {
+  if (qBytes >= 100 * 1000) {
     #if ENABLE_SERVER_TOR_MONITOR == 1
       NS_LOG_INFO(Simulator::Now().GetMicroSeconds() << " us, " << " qId " << queue_id << ", qBytes " << qBytes);
     #endif
@@ -468,7 +479,6 @@ int main (int argc, char *argv[])
             // Enqueue operation (maintain per-flow bytes counter)
 
             all_bytes_counters.push_back(std::map<uint32_t, uint32_t>());
-            all_time.push_back(Time(MicroSeconds(0)));
 
             switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
@@ -576,7 +586,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
   NS_LOG_INFO ("Create applications (incast)");
-  install_incast(servers, SERVER_COUNT * LEAF_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
+  // install_incast(servers, SERVER_COUNT * LEAF_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
 
 
   NS_LOG_INFO ("Start simulation");
