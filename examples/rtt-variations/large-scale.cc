@@ -526,8 +526,8 @@ int main (int argc, char *argv[])
             all_bytes_counters.push_back(std::map<uint32_t, uint32_t>());
 
             // switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
-            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&LeafDownIncomingPkt, i * SERVER_COUNT + j, classifier));
-            delayQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&ServerDownIncomingPkt, i * SERVER_COUNT + j, classifier));
+            // switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&LeafDownIncomingPkt, i * SERVER_COUNT + j, classifier));
+            // delayQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&ServerDownIncomingPkt, i * SERVER_COUNT + j, classifier));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
             // Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
           #endif
@@ -579,8 +579,8 @@ int main (int argc, char *argv[])
                 // sstm_spine << "spineQueue (leafId " << i << ", spineId " << j << ")";
                 // leafQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
                 // spineQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_spine.str()));
-                leafQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&LeafUpIncomingPkt, i * SPINE_COUNT + j, classifier));
-                spineQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&SpineDownIncomingPkt, i * SPINE_COUNT + j, classifier));
+                // leafQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&LeafUpIncomingPkt, i * SPINE_COUNT + j, classifier));
+                // spineQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&SpineDownIncomingPkt, i * SPINE_COUNT + j, classifier));
                 // Simulator::Schedule(window, &pollBytesInLeafSpine, window, leafQueueDisc, (i * SPINE_COUNT + j) << 1);
                 // Simulator::Schedule(window, &pollBytesInLeafSpine, window, spineQueueDisc, ((i * SPINE_COUNT + j) << 1) + 1);
               #endif
