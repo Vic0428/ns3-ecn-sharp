@@ -518,23 +518,23 @@ int main (int argc, char *argv[])
 
           #if ENABLE_QUEUE_MONITOR == 1
             // Register callback function
-            // Ipv4Address serverIpAddr =  interfaceContainer.GetAddress (1);
+            Ipv4Address serverIpAddr =  interfaceContainer.GetAddress (0);
 
             // sstm_leaf <<  "leafQueue (leafId " << i << ", serverId " << j << " " << serverIpAddr << ")";
             // Enqueue operation (maintain per-flow bytes counter)
 
             all_bytes_counters.push_back(std::map<uint32_t, uint32_t>());
 
-            // switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
+            switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&p4Program, switchSideQueueDisc, classifier, i * SERVER_COUNT + j));
             // switchSideQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&LeafDownIncomingPkt, i * SERVER_COUNT + j, classifier));
             // delayQueueDisc->TraceConnectWithoutContext("Enqueue", MakeBoundCallback(&ServerDownIncomingPkt, i * SERVER_COUNT + j, classifier));
             // switchSideQueueDisc->TraceConnectWithoutContext("PacketsInQueue", MakeBoundCallback(&printPktsInQueue, sstm_leaf.str()));
-            // Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
+            Simulator::Schedule(window, &pollBytesInQueue, serverIpAddr, window, switchSideQueueDisc, i * SERVER_COUNT + j, classifier);
           #endif
 
           NS_LOG_INFO ("Leaf - " << i << " is connected to Server - " << j << " with address "
-                       << interfaceContainer.GetAddress(0) << " <-> " << interfaceContainer.GetAddress (1)
-                       << " with port " << netDeviceContainer.Get (0)->GetIfIndex () << " <-> " << netDeviceContainer.Get (1)->GetIfIndex ());
+                       << interfaceContainer.GetAddress(1) << " <-> " << interfaceContainer.GetAddress (0)
+                       << " with port " << netDeviceContainer.Get (1)->GetIfIndex () << " <-> " << netDeviceContainer.Get (0)->GetIfIndex ());
         }
     }
 
@@ -635,7 +635,7 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Actual average flow size: " << static_cast<double> (totalFlowSize) / flowCount);
 
   NS_LOG_INFO ("Create applications (incast)");
-  // install_incast(servers, SERVER_COUNT * LEAF_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
+  install_incast(servers, SERVER_COUNT * LEAF_COUNT, LEAF_COUNT, START_TIME, END_TIME, FLOW_LAUNCH_END_TIME);
 
 
   NS_LOG_INFO ("Start simulation");
